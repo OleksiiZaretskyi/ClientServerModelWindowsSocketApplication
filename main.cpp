@@ -12,8 +12,13 @@ int main() {
         return -1;
     }
 
-    WindowsSocketApp::Server new_server {};
-    WindowsSocketApp::Client new_client {};
+    std::string client_send_buffer {};
+    std::cout << "Enter the message to be sent to the server for analysis:";
+    std::getline(std::cin, client_send_buffer);
+    std::size_t client_send_buffer_length = client_send_buffer.size();
+
+    WindowsSocketApp::Server new_server {static_cast<int>(client_send_buffer_length)};
+    WindowsSocketApp::Client new_client {client_send_buffer};
 
     new_server.start_server();
 
@@ -41,7 +46,6 @@ int main() {
 
         std::cout << "\n=== Server calculating analytics on the received message and sending it back to client ===" << std::endl;
         new_server.calculate_recv_message_analytics();
-
         new_server.send_recv_message_analytics_to_client();
 
         std::cout << "\n=== Server shutting down sending ===" << std::endl;
@@ -62,6 +66,10 @@ int main() {
 
     WSACleanup();
     std::cout << "\nApplication cleanup completed." << std::endl;
+
+    char exit_key;
+    std::cout << "\nEnter any character and press Enter to stop this application and close the window:";
+    std::cin >> exit_key;
 
     return 0;
 }

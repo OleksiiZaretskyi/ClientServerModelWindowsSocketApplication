@@ -2,8 +2,8 @@
 
 namespace WindowsSocketApp {
 
-    Client::Client(int buff_len_val, std::string server_ip_val, std::string port_val, std::string send_buff_val)
-    : buffer_length_{buff_len_val}, server_ip_{std::move(server_ip_val)}, port_{std::move(port_val)}, send_buffer_{std::move(send_buff_val)} {
+    Client::Client(std::string send_buff_val, int buff_len_val, std::string server_ip_val, std::string port_val)
+    : send_buffer_{std::move(send_buff_val)}, buffer_length_{buff_len_val}, server_ip_{std::move(server_ip_val)}, port_{std::move(port_val)} {
         client_initialization_status_ = Client_Initialization_Status::NOT_CONNECTED;
         client_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;
         addrinfo_ptr_ = nullptr;

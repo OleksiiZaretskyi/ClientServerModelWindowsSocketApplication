@@ -11,19 +11,19 @@ namespace WindowsSocketApp {
 
 class Client {
 private:
+    inline static const char * default_send_buffer {"Test Message!"};
     static constexpr int default_buffer_length {1024};
     inline static const char * default_server_ip {"localhost"};
     inline static const char * default_port {"27015"};
-    inline static const char * default_send_buffer {"Test Message!"};
 
     static constexpr auto default_ai_family {AF_UNSPEC};
     static constexpr auto default_ai_socktype {SOCK_STREAM};
     static constexpr auto default_ai_protocol {IPPROTO_TCP};
 
+    std::string send_buffer_;
     int buffer_length_;
     std::string server_ip_;
     std::string port_;
-    std::string send_buffer_;
 
     Client_Initialization_Status client_initialization_status_;
     Sockaddr_Struct_State client_sockaddr_struct_state_;
@@ -39,7 +39,7 @@ private:
     void socket_cleanup();
 
 public:
-    explicit Client(int buff_len_val = default_buffer_length, std::string server_ip_val = default_server_ip, std::string port_val = default_port, std::string send_buff_val = default_send_buffer);
+    explicit Client(std::string send_buff_val = default_send_buffer, int buff_len_val = default_buffer_length, std::string server_ip_val = default_server_ip, std::string port_val = default_port);
 
     void connect_to_server();
     void send_buffer_to_server();
