@@ -96,7 +96,7 @@ namespace WindowsSocketApp {
             for (const auto c : recv_buffer_) {
                 if (c == ' ') {
                     ++spaces_count;
-                } else if ((c >= '!' && c <= '/')||(c >= ':' && c <= '@')||(c >= '[' && c <= '`')) {
+                } else if ((c >= '!' && c <= '/')||(c >= ':' && c <= '@')||(c >= '[' && c <= '`')||(c >= '{' && c <= '~')) {
                     ++punctuation_marks_count;
                 } else if (c >= '0' && c <= '9') {
                     ++digits_count;
