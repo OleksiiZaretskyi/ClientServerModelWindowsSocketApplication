@@ -83,7 +83,7 @@ ClientServerModelWindowsSocketApplication/
 - : Character classification (vowels/consonants) **HelperFunctions.h**
 
 ## 📊 Message Analytics
-The server provides comprehensive analysis of received messages:
+The server provides analysis of the received messages:
 - **Length**: Total character count
 - **Punctuation Marks**: Count of special characters
 - **Spaces**: Whitespace character count
@@ -99,7 +99,7 @@ The server provides comprehensive analysis of received messages:
 std::thread server_thread {&WindowsSocketApp::Server::accept_connections, &new_server};
 std::thread client_thread {&WindowsSocketApp::Client::connect_to_server, &new_client};
 ```
-### Efficient Character Analysis
+### Character Analysis (from HelperFunctions.h)
 ``` cpp
 inline bool is_vowel(char c) {
     switch (c | 0x20) {  // Bitwise conversion to lowercase
