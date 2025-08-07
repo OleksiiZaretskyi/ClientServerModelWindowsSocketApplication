@@ -1,6 +1,6 @@
-#include "Server.h"
+#include "../include/Server.h"
 
-#include "HelperFunctions.h"
+#include "../utils/HelperFunctions.h"
 
 namespace WindowsSocketApp {
 
