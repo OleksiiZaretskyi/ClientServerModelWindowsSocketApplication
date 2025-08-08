@@ -7,16 +7,14 @@ Client::Client(std::string send_buff_val, int buff_len_val,
     : send_buffer_{std::move(send_buff_val)},
       buffer_length_{buff_len_val},
       server_ip_{std::move(server_ip_val)},
-      port_{std::move(port_val)} {
-  client_initialization_status_ = Client_Initialization_Status::NOT_CONNECTED;
-  client_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;
-  addrinfo_ptr_ = nullptr;
-  result_ = nullptr;
-  hints_ = {};
-
-  connect_socket_ = INVALID_SOCKET;
-
-  ZeroMemory(&hints_, sizeof(hints_));
+      port_{std::move(port_val)},
+      client_initialization_status_{
+          Client_Initialization_Status::NOT_CONNECTED},
+      client_sockaddr_struct_state_{Sockaddr_Struct_State::EMPTY},
+      result_{nullptr},
+      addrinfo_ptr_{nullptr},
+      hints_{},
+      connect_socket_{INVALID_SOCKET} {
   hints_.ai_family = default_ai_family;
   hints_.ai_socktype = default_ai_socktype;
   hints_.ai_protocol = default_ai_protocol;

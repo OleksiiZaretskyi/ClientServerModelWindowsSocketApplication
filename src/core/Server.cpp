@@ -5,16 +5,14 @@
 namespace WindowsSocketApp {
 
 Server::Server(int buff_len_val, std::string port_val)
-    : buffer_length_{buff_len_val}, port_{std::move(port_val)} {
-  server_initialization_status_ = Server_Initialization_Status::NOT_STARTED;
-  server_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;
-  result_ = nullptr;
-  hints_ = {};
-
-  listen_socket_ = INVALID_SOCKET;
-  client_socket_ = INVALID_SOCKET;
-
-  ZeroMemory(&hints_, sizeof(hints_));
+    : buffer_length_{buff_len_val},
+      port_{std::move(port_val)},
+      server_initialization_status_{Server_Initialization_Status::NOT_STARTED},
+      server_sockaddr_struct_state_{Sockaddr_Struct_State::EMPTY},
+      result_{nullptr},
+      hints_{},
+      listen_socket_{INVALID_SOCKET},
+      client_socket_{INVALID_SOCKET} {
   hints_.ai_family = default_ai_family;
   hints_.ai_socktype = default_ai_socktype;
   hints_.ai_protocol = default_ai_protocol;
