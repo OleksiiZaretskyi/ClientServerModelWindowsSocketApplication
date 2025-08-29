@@ -31,6 +31,14 @@ void Client::connect_to_server() {
     client_sockaddr_struct_state_ = Sockaddr_Struct_State::CREATED;
   }
 
+  if (result_ == nullptr) {
+    std::cerr << "Error: result_ pointer to addrinfo is null after client "
+                 "address resolution"
+              << std::endl;
+    socket_cleanup();
+    return;
+  }
+
   // Attempt to connect to an address until one succeeds
   for (addrinfo_ptr_ = result_; addrinfo_ptr_ != nullptr;
        addrinfo_ptr_ = addrinfo_ptr_->ai_next) {
@@ -55,9 +63,11 @@ void Client::connect_to_server() {
     socket_cleanup();
     return;
   } else {
-    freeaddrinfo(result_);
+    if (result_ != nullptr) {
+      freeaddrinfo(result_);
+      result_ = nullptr;
+    }
     client_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;
-    result_ = nullptr;
     client_initialization_status_ = Client_Initialization_Status::CONNECTED;
     std::cout << "Client successfully connected to server." << std::endl;
   }
@@ -92,7 +102,8 @@ void Client::socket_cleanup() {
   std::cout << "Closing all client sockets, freeing address info, closing "
                "connection to server... "
             << std::endl;
-  if (client_sockaddr_struct_state_ == Sockaddr_Struct_State::CREATED) {
+  if (client_sockaddr_struct_state_ == Sockaddr_Struct_State::CREATED &&
+      result_ != nullptr) {
     freeaddrinfo(result_);
     result_ = nullptr;
     client_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;

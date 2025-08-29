@@ -29,6 +29,13 @@ void Server::start_server() {
   } else {
     server_sockaddr_struct_state_ = Sockaddr_Struct_State::CREATED;
   }
+  if (result_ == nullptr) {
+    std::cerr << "Error: result_ pointer to addrinfo is null after server "
+                 "address resolution"
+              << std::endl;
+    socket_cleanup();
+    return;
+  }
 
   listen_socket_ = create_socket(result_->ai_family, result_->ai_socktype,
                                  result_->ai_protocol);
@@ -42,9 +49,11 @@ void Server::start_server() {
     socket_cleanup();
     return;
   } else {
-    freeaddrinfo(result_);
+    if (result_ != nullptr) {
+      freeaddrinfo(result_);
+      result_ = nullptr;
+    }
     server_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;
-    result_ = nullptr;
   }
 
   if (!listen_on_socket(listen_socket_, maximum_pending_connections)) {
@@ -154,7 +163,8 @@ void Server::socket_cleanup() {
   std::cout << "Closing all server sockets, freeing address info, stopping the "
                "server... "
             << std::endl;
-  if (server_sockaddr_struct_state_ == Sockaddr_Struct_State::CREATED) {
+  if (server_sockaddr_struct_state_ == Sockaddr_Struct_State::CREATED &&
+      result_ != nullptr) {
     freeaddrinfo(result_);
     result_ = nullptr;
     server_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;
