@@ -5,7 +5,7 @@ int main() {
   if (!WindowsSocketApp::initialize_winsock_2_0(wsaData)) {
     std::cerr << "Failed to initialize Winsock 2.0. Exiting from main()..."
               << std::endl;
-    return -1;
+    return 1;
   }
 
   // Collect client configuration from user
@@ -32,49 +32,50 @@ int main() {
   }
 
   // Create client
-  WindowsSocketApp::Client client{message, 1024, server_ip, port};
+  {  // Open scope for the Client object
+    WindowsSocketApp::Client client{message, 1024, server_ip, port};
 
-  std::cout << "Connecting to server at " << server_ip << ":" << port << "..."
-            << std::endl;
+    std::cout << "Connecting to server at " << server_ip << ":" << port << "..."
+              << std::endl;
 
-  // Connect to server
-  client.connect_to_server();
+    // Connect to server
+    client.connect_to_server();
 
-  if (client.get_client_init_status() ==
-      WindowsSocketApp::Client_Initialization_Status::CONNECTED) {
-    std::cout << "Connected to server successfully!" << std::endl;
+    if (client.get_client_init_status() ==
+        WindowsSocketApp::Client_Initialization_Status::CONNECTED) {
+      std::cout << "Connected to server successfully!" << std::endl;
 
-    // Send message
-    std::cout << "Sending message: \"" << message << "\"" << std::endl;
-    client.send_buffer_to_server();
+      // Send the message
+      std::cout << "Sending message: \"" << message << "\"" << std::endl;
+      client.send_buffer_to_server();
 
-    // Shutdown sending
-    std::cout << "Shutting down sending..." << std::endl;
-    client.shutdown_message_sending();
+      // Shutdown sending
+      std::cout << "Shutting down sending..." << std::endl;
+      client.shutdown_message_sending();
 
-    // Receive response
-    std::cout << "Waiting for server response..." << std::endl;
-    client.receive_server_message();
+      // Receive response
+      std::cout << "Waiting for server response..." << std::endl;
+      client.receive_server_message();
 
-    std::cout << "Received analytics from server:" << std::endl;
-    client.display_recv_buffer();
+      std::cout << "Received analytics from server:" << std::endl;
+      client.display_recv_buffer();
 
-    std::cout << "Communication completed successfully!" << std::endl;
-  } else {
-    std::cerr << "Failed to connect to server." << std::endl;
-  }
+      std::cout << "Communication completed successfully!" << std::endl;
+    } else {
+      std::cerr << "Failed to connect to server." << std::endl;
+    }
 
-  // Cleanup
-  client.close_connection_to_server();
+    std::cout << "Client shutting down..." << std::endl;
+
+  }  // Client destructor automatically called to clean up the resources.
+
+  // Cleanup Winsock
   WSACleanup();
-
   std::cout << "Client shutdown completed." << std::endl;
 
-  // Keep window open
-  char exit_key;
-  std::cout << "\nEnter any character and press Enter to stop this application "
-               "and close the window:";
-  std::cin >> exit_key;
+  // Keep the window open
+  std::cout << "\nPress Enter to exit...";
+  std::cin.get();
 
   return 0;
 }

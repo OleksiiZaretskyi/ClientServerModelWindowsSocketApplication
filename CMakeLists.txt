@@ -15,11 +15,15 @@ set(SERVER_HEADERS
         src/include/Server.h
         src/include/WinSockFunctions.h
         src/utils/HelperFunctions.h
+        src/include/NetworkTypes.h
+        src/include/SocketWrapper.h
 )
 
 set(CLIENT_HEADERS
         src/include/Client.h
         src/include/WinSockFunctions.h
+        src/include/NetworkTypes.h
+        src/include/SocketWrapper.h
 )
 
 add_executable(Server

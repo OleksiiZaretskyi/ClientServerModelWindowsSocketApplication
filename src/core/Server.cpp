@@ -4,90 +4,86 @@
 
 namespace WindowsSocketApp {
 
-Server::Server(int buff_len_val, std::string port_val)
-    : buffer_length_{buff_len_val},
+Server::Server(size_t recv_capacity_val, std::string port_val)
+    : recv_buffer_capacity_{recv_capacity_val},
       port_{std::move(port_val)},
       server_initialization_status_{Server_Initialization_Status::NOT_STARTED},
       server_sockaddr_struct_state_{Sockaddr_Struct_State::EMPTY},
       result_{nullptr},
       hints_{},
-      listen_socket_{INVALID_SOCKET},
-      client_socket_{INVALID_SOCKET} {
+      listen_socket_{},   // Default constructs to INVALID_SOCKET
+      client_socket_{} {  // Default constructs to INVALID_SOCKET
   hints_.ai_family = default_ai_family;
   hints_.ai_socktype = default_ai_socktype;
   hints_.ai_protocol = default_ai_protocol;
   hints_.ai_flags = default_ai_flags;
 
-  recv_buffer_.reserve(buffer_length_);
+  recv_buffer_.reserve(recv_buffer_capacity_);
   recv_message_analytics_.clear();
 }
 
 void Server::start_server() {
-  if (!resolve_address_and_port(nullptr, port_.c_str(), &hints_, &result_)) {
-    socket_cleanup();
+  if (!resolve_address_and_port(nullptr, port_.c_str(), &hints_, result_)) {
+    std::cerr << "Failed to resolve server address and port." << std::endl;
     return;
-  } else {
-    server_sockaddr_struct_state_ = Sockaddr_Struct_State::CREATED;
   }
-  if (result_ == nullptr) {
+  server_sockaddr_struct_state_ = Sockaddr_Struct_State::CREATED;
+
+  if (!result_) {
     std::cerr << "Error: result_ pointer to addrinfo is null after server "
                  "address resolution"
               << std::endl;
-    socket_cleanup();
     return;
   }
 
-  listen_socket_ = create_socket(result_->ai_family, result_->ai_socktype,
-                                 result_->ai_protocol);
-  if (listen_socket_ == INVALID_SOCKET) {
-    socket_cleanup();
+  listen_socket_ = SocketWrapper{create_socket(
+      result_->ai_family, result_->ai_socktype, result_->ai_protocol)};
+  if (!listen_socket_.valid()) {
+    std::cerr << "Failed to create server listen socket" << std::endl;
     return;
   }
 
-  if (!bind_socket(listen_socket_, result_->ai_addr,
+  if (!bind_socket(listen_socket_.get(), result_->ai_addr,
                    static_cast<int>(result_->ai_addrlen))) {
-    socket_cleanup();
+    std::cerr << "Failed to bind server socket" << std::endl;
     return;
-  } else {
-    if (result_ != nullptr) {
-      freeaddrinfo(result_);
-      result_ = nullptr;
-    }
-    server_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;
   }
 
-  if (!listen_on_socket(listen_socket_, maximum_pending_connections)) {
-    socket_cleanup();
+  result_.reset();
+  server_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;
+
+  if (!listen_on_socket(listen_socket_.get(), maximum_pending_connections)) {
+    std::cerr << "Failed to listen on socket" << std::endl;
     return;
-  } else {
-    server_initialization_status_ =
-        Server_Initialization_Status::LISTENING_FOR_CONNECTION;
-    std::cout << "Server is started in the listening mode." << std::endl;
   }
+  server_initialization_status_ =
+      Server_Initialization_Status::LISTENING_FOR_CONNECTION;
+  std::cout << "Server is started in the listening mode." << std::endl;
 }
 
 void Server::accept_connections() {
-  client_socket_ = accept_socket(listen_socket_);
-  if (client_socket_ == INVALID_SOCKET) {
-    socket_cleanup();
+  client_socket_ = SocketWrapper{accept_socket(listen_socket_.get())};
+
+  if (!client_socket_.valid()) {
+    std::cerr << "Failed to accept client connection" << std::endl;
     return;
-  } else {
-    server_initialization_status_ =
-        Server_Initialization_Status::CLIENT_CONNECTION_HANDLED;
-    std::cout << "Client connection handled for client socket: "
-              << client_socket_ << std::endl;
-    // No longer need the server socket in this particular single-thread
-    // example, should be re-factored when introducing the multi-threading later
-    closesocket(listen_socket_);
-    listen_socket_ = INVALID_SOCKET;
   }
+
+  server_initialization_status_ =
+      Server_Initialization_Status::CLIENT_CONNECTION_HANDLED;
+  std::cout << "Client connection handled for client socket: "
+            << client_socket_.get() << std::endl;
+  // No longer need the server socket in this particular single-thread
+  // example, should be re-factored when introducing the multi-threading later
+  listen_socket_.close();
 }
 
 void Server::receive_client_message() {
   recv_buffer_.clear();
-  recv_buffer_.resize(buffer_length_);
-  if (!receive_until_empty_input(client_socket_, recv_buffer_)) {
-    socket_cleanup();
+  recv_buffer_.resize(recv_buffer_capacity_);
+
+  if (!receive_until_empty_input(client_socket_.get(), recv_buffer_)) {
+    std::cerr << "Failed to receive client message" << std::endl;
   }
 }
 
@@ -124,6 +120,7 @@ void Server::calculate_recv_message_analytics() {
       }
     }
   }
+
   recv_message_analytics_ =
       "Received message analytics: Length: " +
       std::to_string(recv_message_length) +
@@ -131,53 +128,31 @@ void Server::calculate_recv_message_analytics() {
       ", spaces count: " + std::to_string(spaces_count) +
       ", digits count: " + std::to_string(digits_count) +
       ", uppercase letters count: " + std::to_string(uppercase_count) +
-      ", lowercase laters count: " + std::to_string(lowercase_count) +
+      ", lowercase letters count: " + std::to_string(lowercase_count) +
       ", vowels count: " + std::to_string(vowels_count) +
       ", consonants count: " + std::to_string(consonants_count);
 }
 
-void Server::echo_message_to_client() {
-  if (!send_buffer_content(client_socket_, recv_buffer_)) {
-    socket_cleanup();
-  }
+void Server::echo_message_to_client() const {
+  if (!send_buffer_content(client_socket_.get(), recv_buffer_)) {
+    std::cerr << "Failed to echo message to client" << std::endl;
+  };
 }
 
-void Server::send_recv_message_analytics_to_client() {
-  if (!send_buffer_content(client_socket_, recv_message_analytics_)) {
-    socket_cleanup();
+void Server::send_recv_message_analytics_to_client() const {
+  if (!send_buffer_content(client_socket_.get(), recv_message_analytics_)) {
+    std::cerr << "Failed to send analytics to client" << std::endl;
   }
 }
 
 void Server::shutdown_message_sending() {
-  if (!shutdown_sending_side(client_socket_)) {
-    socket_cleanup();
-  } else {
-    server_initialization_status_ =
-        Server_Initialization_Status::SHUTDOWN_FOR_SENDING;
+  if (!shutdown_sending_side(client_socket_.get())) {
+    std::cerr << "Failed to shutdown server sending side" << std::endl;
+    return;
   }
-}
 
-void Server::stop_server() { socket_cleanup(); }
-
-void Server::socket_cleanup() {
-  std::cout << "Closing all server sockets, freeing address info, stopping the "
-               "server... "
-            << std::endl;
-  if (server_sockaddr_struct_state_ == Sockaddr_Struct_State::CREATED &&
-      result_ != nullptr) {
-    freeaddrinfo(result_);
-    result_ = nullptr;
-    server_sockaddr_struct_state_ = Sockaddr_Struct_State::EMPTY;
-  }
-  if (listen_socket_ != INVALID_SOCKET) {
-    closesocket(listen_socket_);
-    listen_socket_ = INVALID_SOCKET;
-  }
-  if (client_socket_ != INVALID_SOCKET) {
-    closesocket(client_socket_);
-    client_socket_ = INVALID_SOCKET;
-  }
-  server_initialization_status_ = Server_Initialization_Status::NOT_STARTED;
+  server_initialization_status_ =
+      Server_Initialization_Status::SHUTDOWN_FOR_SENDING;
 }
 
 Server_Initialization_Status Server::get_server_init_status() const {
@@ -191,7 +166,11 @@ void Server::display_recv_buffer() const {
   std::cout << std::endl;
 }
 
-const char* Server::get_port() const { return port_.c_str(); }
+size_t Server::get_recv_buffer_capacity() const {
+  return recv_buffer_capacity_;
+}
+
+const std::string &Server::get_port() const { return port_; }
 
 void Server::set_port(std::string port) { this->port_ = std::move(port); }
 

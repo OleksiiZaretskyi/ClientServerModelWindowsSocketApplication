@@ -1,13 +1,16 @@
 #ifndef WINSOCKFUNCTIONS_H
 #define WINSOCKFUNCTIONS_H
 
-#include <winsock2.h>
 #include <windows.h>
+#include <winsock2.h>
 #include <ws2tcpip.h>
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <vector>
+
+#include "NetworkTypes.h"
 
 // Need to link with Ws2_32.lib for Server
 // Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib for Client
@@ -18,7 +21,6 @@
 // out for MinGW Compiler, Windows socket libraries are linked in CMakeLists.txt
 
 namespace WindowsSocketApp {
-enum class Sockaddr_Struct_State { EMPTY, CREATED };
 
 inline bool initialize_winsock_2_0(WSADATA &wsaData) {
   int i_result = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -29,14 +31,16 @@ inline bool initialize_winsock_2_0(WSADATA &wsaData) {
   return true;
 }
 
-inline bool resolve_address_and_port(const char *nodename, const char *servname,
-                                     const struct addrinfo *hints,
-                                     struct addrinfo **res) {
-  int i_result = getaddrinfo(nodename, servname, hints, res);
+inline bool resolve_address_and_port(
+    const char *nodename, const char *servname, const struct addrinfo *hints,
+    std::unique_ptr<addrinfo, AddrInfoDeleter> &res) {
+  addrinfo *raw_result{nullptr};
+  int i_result = getaddrinfo(nodename, servname, hints, &raw_result);
   if (i_result != 0) {
     std::cout << "getaddrinfo failed with error: " << i_result << std::endl;
     return false;
   }
+  res.reset(raw_result);
   return true;
 }
 
